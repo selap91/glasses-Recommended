@@ -1,9 +1,19 @@
+'''
+
+train whose face image and his glasses attributes(style,color,size,shape).
+
+- input data with 'csv' files 
+- make checkpoints periodically
+- vgg16
+
+'''
+
 import tensorflow as tf
 import time as t
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2"  # graphic card number to use
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1"  # graphic card number to use
 
 # data csv files
 train_csv_dir = "/mnt/hdd3t/Data/hci1/hoon/LightHouse_of_Inha/CSVs/3th/size/train_G_size.csv"
