@@ -3,7 +3,7 @@ import time as t
 import os
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2"  # graphic cared number to use
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2"  # graphic card number to use
 
 # data csv files
 train_csv_dir = "/mnt/hdd3t/Data/hci1/hoon/LightHouse_of_Inha/CSVs/3th/size/train_G_size.csv"
@@ -12,11 +12,11 @@ test_csv_dir = "/mnt/hdd3t/Data/hci1/hoon/LightHouse_of_Inha/CSVs/3th/size/test_
 image_height = 224
 image_width = 224
 train_batch_size = 32 # batch size
-test_batch_size = 15
-num_out = 2 # number of output node
+test_batch_size = 16
+num_out = 2 # number of output result
 
 keep_prob = tf.placeholder(dtype=tf.float32) # drop-out %
-task = tf.placeholder(dtype=tf.bool) # true : training / false : testing
+task = tf.placeholder(dtype=tf.bool) # if true : training / if false : testing
 x = tf.placeholder(dtype=tf.float32, shape=[None, image_height, image_width, 3]) # for image
 y = tf.placeholder(dtype=tf.float32, shape=[None, num_out]) # for label
 z = tf.placeholder(dtype=tf.float32, shape=[None, 1]) # for gender
@@ -43,17 +43,20 @@ test_label = tf.reshape(tf.one_hot(test_label, depth=num_out, on_value=1.0, off_
 test_gender = tf.reshape(test_gender, shape=[1])
 
 
+# create weight function
 def weight(shape, name):
     initial = tf.truncated_normal(shape, stddev=1e-1, dtype=tf.float32)
     return tf.Variable(initial, name=name)
 
+# create bias function
 def bias(shape, num, name):
-    if num == 0.0:
+    if num == 0.0: # conv-layer : initialize to 0.0
         initial = tf.zeros(shape, dtype=tf.float32)
-    else:
+    else: # fully-connected layer : initialize to 1.0
         initial = tf.ones(shape, dtype=tf.float32)
     return tf.Variable(initial, name=name)
 
+# conv2d wrapping function 
 def conv(x, y):
     return tf.nn.conv2d(x, y, strides=[1,1,1,1], padding="SAME")
 
@@ -169,11 +172,13 @@ label_value = tf.reshape(tf.cast(tf.argmax(y_label, 1), dtype=tf.int32), shape=[
 #vgg_max = tf.reshape(tf.cast(tf.argmax(y_vgg, 1), dtype=tf.int32), shape=[test_batch_size])
 max_point = tf.reshape(tf.cast(tf.argmax(y_out, 1), dtype=tf.int32), shape=[test_batch_size])
 
+# cost function
+cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_label, logits=y_out)) # better to use softmax func
+#cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=y_label, logits=y_out))
+
 # train
 start_learning_rate = 0.0008 # start_learning_rate
 global_step = tf.Variable(0, trainable=False)
-#cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=y_label, logits=y_out))
-cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_label, logits=y_out))
 tf.summary.scalar('loss', cross_entropy)
 learning_rate = tf.maximum(0.00003, tf.train.exponential_decay(start_learning_rate, global_step, 467, 0.8, staircase=True))
 train = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
@@ -183,14 +188,13 @@ prediction = tf.equal(tf.argmax(y_label, 1), tf.argmax(y_out, 1))
 accuracy = tf.reduce_mean(tf.cast(prediction, tf.float32))
 tf.summary.scalar('accuracy', accuracy)
 
-
-
+# make batch
 b_train_image, b_train_label, b_train_dir, b_train_gender = tf.train.shuffle_batch([train_img, train_label, train_img_dir, train_gender], batch_size=train_batch_size, num_threads=1, capacity=10000, min_after_dequeue=0, allow_smaller_final_batch=True)
 b_test_image, b_test_label, b_test_dir, b_test_gender = tf.train.batch([test_img, test_label, test_img_dir, test_gender], batch_size=test_batch_size, num_threads=1, capacity=10000, allow_smaller_final_batch=True)
 
 
 with tf.Session() as sess:
-    saver = tf.train.Saver(max_to_keep=22)
+    saver = tf.train.Saver(max_to_keep=22) 
     sess.run(tf.local_variables_initializer())
     sess.run(tf.global_variables_initializer())
     #saver.restore(sess, '/mnt/hdd3t/Data/hci1/hoon/2th/shape/total/2thCircleCkpts/CircleCkpt-50')
