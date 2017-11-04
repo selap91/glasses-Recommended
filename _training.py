@@ -23,7 +23,7 @@ image_height = 224
 image_width = 224
 train_batch_size = 32 # batch size
 test_batch_size = 16
-num_out = 2 # number of output result
+num_out = 3 # number of output result
 
 keep_prob = tf.placeholder(dtype=tf.float32) # drop-out %
 task = tf.placeholder(dtype=tf.bool) # if true : training / if false : testing
@@ -175,8 +175,9 @@ flat = tf.reshape(pool5, [-1, 7 * 7 * 512])
 fc1 = tf.nn.relu(batch_FC(tf.nn.dropout(tf.nn.bias_add(tf.matmul(flat, w_fc1), b_fc1), keep_prob=keep_prob), task))
 fc2 = tf.nn.relu(batch_FC(tf.nn.dropout(tf.nn.bias_add(tf.matmul(fc1, w_fc2), b_fc2), keep_prob=keep_prob), task))
 y_vgg = tf.nn.dropout(tf.nn.bias_add(tf.matmul(fc2, w_vgg), b_vgg), keep_prob=keep_prob)
+
+# add gender to result array of vgg16
 y_vgg = tf.concat([y_vgg, z_gender], 1)
-#y_gender12 = tf.nn.bias_add(tf.matmul(y_gender, w_gender1), b_gender1)
 y_gender = tf.nn.relu(batch_FC(tf.nn.dropout(tf.nn.bias_add(tf.matmul(y_vgg, w_gender1), b_gender1), keep_prob=keep_prob), task))
 y_out = tf.nn.dropout(tf.nn.bias_add(tf.matmul(y_gender, w_gender2), b_gender2), keep_prob=keep_prob)
 
