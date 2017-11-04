@@ -1,9 +1,8 @@
 '''
+
 ## on server ##
 
-extract the 4 attributes result with data
-
-using 4 learned checkpoints
+calculate 4 attribute results with 4 learned checkpoints
 
 '''
 
@@ -16,7 +15,7 @@ import shutil
 ckpt_list = ["/home/ubuntu/hoon/ckpts/shape/ShapeCkpt-60",
              "/home/ubuntu/hoon/ckpts/size/SizeCkpt-51",
              "/home/ubuntu/hoon/ckpts/type/TypeCkpt-50",
-             "/home/ubuntu/hoon/ckpts/color/TypeCkpt-85"]
+             "/home/ubuntu/hoon/ckpts/color/ColorCkpt-85"]
 
 
 image_height = 224
