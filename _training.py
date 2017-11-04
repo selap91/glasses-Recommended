@@ -2,7 +2,7 @@
 
 train whose face image and his glasses attributes(style,color,size,shape).
 
-- input data with 'csv' files 
+- input data with 'csv' files
 - make checkpoints periodically
 - vgg16
 
@@ -30,7 +30,6 @@ task = tf.placeholder(dtype=tf.bool) # if true : training / if false : testing
 x = tf.placeholder(dtype=tf.float32, shape=[None, image_height, image_width, 3]) # for image
 y = tf.placeholder(dtype=tf.float32, shape=[None, num_out]) # for label
 z = tf.placeholder(dtype=tf.float32, shape=[None, 1]) # for gender
-
 
 # train data load
 train_queue = tf.train.string_input_producer([train_csv_dir])
@@ -60,13 +59,13 @@ def weight(shape, name):
 
 # create bias function
 def bias(shape, num, name):
-    if num == 0.0: # conv-layer : initialize to 0.0
+    if num == 0.0: # conv-layer : initialie to 0.0
         initial = tf.zeros(shape, dtype=tf.float32)
     else: # fully-connected layer : initialize to 1.0
         initial = tf.ones(shape, dtype=tf.float32)
     return tf.Variable(initial, name=name)
 
-# conv2d wrapping function 
+# conv2d wrapping function
 def conv(x, y):
     return tf.nn.conv2d(x, y, strides=[1,1,1,1], padding="SAME")
 
@@ -140,7 +139,10 @@ w_fc2 = weight([4096, 4096], 'w_fc2')
 b_fc2 = bias([4096], 1.0, 'b_fc2')
 w_vgg = weight([4096, num_out], 'w_vgg')
 b_vgg = bias([num_out], 1.0, 'b_vgg')
-
+w_gender1 = weight([num_out + 1, 12], 'w_gender1')
+b_gender1 = bias([12], 1.0, 'b_gender1')
+w_gender2 = weight([12, num_out], 'w_gender2')
+b_gender2 = bias([num_out], 1.0, 'b_gender2')
 
 #x_image = tf.reshape(x, shape=[-1, 224, 224, 3])
 y_label = tf.reshape(y, shape=[-1, num_out])
@@ -172,14 +174,13 @@ pool5 = tf.nn.max_pool(conv5_3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], paddin
 flat = tf.reshape(pool5, [-1, 7 * 7 * 512])
 fc1 = tf.nn.relu(batch_FC(tf.nn.dropout(tf.nn.bias_add(tf.matmul(flat, w_fc1), b_fc1), keep_prob=keep_prob), task))
 fc2 = tf.nn.relu(batch_FC(tf.nn.dropout(tf.nn.bias_add(tf.matmul(fc1, w_fc2), b_fc2), keep_prob=keep_prob), task))
-y_out = tf.nn.dropout(tf.nn.bias_add(tf.matmul(fc2, w_vgg), b_vgg), keep_prob=keep_prob)
-#y_gender = tf.concat([y_vgg, z_gender], 1)
-#y_out = tf.nn.bias_add(tf.matmul(y_gender, w_gender), b_gender)
-#y_1 = tf.nn.dropout(tf.nn.relu(batch_FC(tf.nn.bias_add(tf.matmul(y_gender, w_gender), b_gender), 0.997, task)), keep_prob=keep_prob)
-#y_out = tf.nn.bias_add(tf.matmul(y_1, w_out), b_out)
+y_vgg = tf.nn.dropout(tf.nn.bias_add(tf.matmul(fc2, w_vgg), b_vgg), keep_prob=keep_prob)
+y_vgg = tf.concat([y_vgg, z_gender], 1)
+#y_gender12 = tf.nn.bias_add(tf.matmul(y_gender, w_gender1), b_gender1)
+y_gender = tf.nn.relu(batch_FC(tf.nn.dropout(tf.nn.bias_add(tf.matmul(y_vgg, w_gender1), b_gender1), keep_prob=keep_prob), task))
+y_out = tf.nn.dropout(tf.nn.bias_add(tf.matmul(y_gender, w_gender2), b_gender2), keep_prob=keep_prob)
 
 label_value = tf.reshape(tf.cast(tf.argmax(y_label, 1), dtype=tf.int32), shape=[test_batch_size])
-#vgg_max = tf.reshape(tf.cast(tf.argmax(y_vgg, 1), dtype=tf.int32), shape=[test_batch_size])
 max_point = tf.reshape(tf.cast(tf.argmax(y_out, 1), dtype=tf.int32), shape=[test_batch_size])
 
 # cost function
@@ -204,7 +205,7 @@ b_test_image, b_test_label, b_test_dir, b_test_gender = tf.train.batch([test_img
 
 
 with tf.Session() as sess:
-    saver = tf.train.Saver(max_to_keep=22) 
+    saver = tf.train.Saver(max_to_keep=22)
     sess.run(tf.local_variables_initializer())
     sess.run(tf.global_variables_initializer())
     #saver.restore(sess, '/mnt/hdd3t/Data/hci1/hoon/2th/shape/total/2thCircleCkpts/CircleCkpt-50')
