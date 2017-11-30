@@ -1,1 +1,1 @@
-# glasses-Recommended network with Tensorflow
+# glasses-recommendation network with Tensorflow
